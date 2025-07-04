@@ -79,28 +79,16 @@ function Alertas() {
             <p>Sem alertas no momento</p>
           ) : (
             alertas.map((alerta, idx) => (
-              <div
-                key={idx}
-                style={{
-                  textAlign: 'left',
-                  marginTop: '1rem',
-                  background: '#fff',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  boxShadow: '0 0 8px rgba(0,0,0,0.05)'
-                }}
-              >
-                {Object.entries(alerta).map(([chave, valor]) => (
-                  <div key={chave} style={{ marginBottom: '0.5rem' }}>
-                    <strong>{chave}:</strong><br />
-                    <span style={{ whiteSpace: 'pre-wrap' }}>
-                      {typeof valor === 'object' ? JSON.stringify(valor, null, 2) : String(valor)}
-                    </span>
-                  </div>
-                ))}
-                <hr />
-              </div>
-            ))
+  <div key={idx} style={{ textAlign: 'left', marginTop: '1rem' }}>
+    {Object.entries(alerta).map(([key, value]) => (
+      <div key={key}>
+        <strong>{key}:</strong> {typeof value === 'string' || typeof value === 'number' ? value : JSON.stringify(value)}
+      </div>
+    ))}
+    <hr />
+  </div>
+))
+
           )}
         </main>
 
