@@ -2,7 +2,7 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #e8d8c3;
+  background-color: #aaecf5;
   color: #1d1d1d;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -11,7 +11,7 @@ body {
 .mobile-wrapper {
   display: flex;
   justify-content: center;
-  background-color: #e8d8c3;
+  background-color: #aaecf5;
   min-height: 100vh;
 }
 
@@ -21,7 +21,7 @@ body {
 .calendar-screen {
   width: 375px;
   min-height: 100vh;
-  background-color: #e8d8c3;
+  background-color: #aaecf5;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -192,7 +192,7 @@ button:hover {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background-color: white;
+  background-color: #aaecf5;
   padding: 0.7rem 0;
   border-top: 1px solid #ccc;
 }
@@ -225,4 +225,45 @@ button:hover {
   justify-content: space-around;
   padding: 0.5rem 0;
   border-top: 1px solid #ccc;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.icon-button img {
+  width: 36px;
+  height: 36px;
+  opacity: 0.9;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.icon-button:hover img {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.icon-button:active img {
+  transform: scale(0.95);
+}
+.clima-footer button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.clima-footer button:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+
+.icon-img {
+  width: 36px;
+  height: 36px;
 }

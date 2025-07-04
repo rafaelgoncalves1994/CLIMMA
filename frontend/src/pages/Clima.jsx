@@ -38,6 +38,54 @@ function Clima() {
     fetchWeather(lastCity)
   }, [])
 
+ const handleGeolocate = () => {
+  if (!navigator.geolocation) {
+    alert('Geolocalização não suportada pelo navegador')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude, accuracy } = position.coords
+
+      console.log('Latitude:', latitude)
+      console.log('Longitude:', longitude)
+      console.log('Precisão (metros):', accuracy)
+
+      // ⚠️ Se a precisão for ruim, avise o usuário
+      if (accuracy > 1000) {
+        alert('Localização imprecisa. Tente novamente em local aberto.')
+      }
+
+      try {
+        const res = await fetch(
+          `http://localhost:5000/weather/coords?lat=${latitude}&lon=${longitude}`
+        )
+        const data = await res.json()
+        if (res.ok) {
+          setWeather(data)
+          setSearch(data.cidade)
+        } else {
+          alert(data.error || 'Erro ao buscar clima por localização')
+        }
+      } catch (error) {
+        alert('Erro na conexão com servidor')
+      }
+    },
+    (error) => {
+      console.error(error)
+      alert('Erro ao obter localização')
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  )
+}
+
+
+
   return (
     <div className="mobile-wrapper">
       <div className="clima-screen">
@@ -102,10 +150,17 @@ function Clima() {
         </main>
 
         <footer className="clima-footer">
-          <button>📍</button>
-          <button>📤</button>
-          <button>🔔</button>
-        </footer>
+  <button className="icon-button" onClick={handleGeolocate}>
+  <img src="/icons/mapa.png" alt="Localização" className="icon-img" />
+  </button>
+  <button className="icon-button" onClick={() => navigate('/compartilhados')}>
+    <img src="/icons/pasta.png" alt="Compartilhados" />
+  </button>
+  <button className="icon-button" onClick={() => navigate('/alertas')}>
+    <img src="/icons/notificacao.png" alt="Alertas" />
+  </button>
+</footer>
+
       </div>
     </div>
   )
