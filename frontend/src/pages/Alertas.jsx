@@ -116,10 +116,10 @@ function Alertas() {
           {clima && (
             <div style={{ textAlign: 'left', marginTop: '2rem', background: '#f1f8e9', padding: '1rem', borderRadius: '8px' }}>
               <h4>☀️ Clima Atual</h4>
-              <p><strong>Temperatura:</strong> {clima.temperatura} °C</p>
-              <p><strong>Sensação Térmica:</strong> {clima.sensacao_termica} °C</p>
-              <p><strong>Umidade:</strong> {clima.umidade} %</p>
-              <p><strong>Vento:</strong> {clima.vento} m/s</p>
+              <p><strong>Temperatura:</strong> {Math.round(clima.temperatura)} °C</p>
+              <p><strong>Sensação Térmica:</strong> {Math.round(clima.sensacao_termica)} °C</p>
+              <p><strong>Umidade:</strong> {Math.round(clima.umidade)} %</p>
+              <p><strong>Vento:</strong> {Math.round(clima.vento)} m/s</p>
               <p><strong>Atualizado:</strong> {new Date(clima.timestamp * 1000).toLocaleString()}</p>
             </div>
           )}
