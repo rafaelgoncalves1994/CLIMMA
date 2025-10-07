@@ -3,37 +3,73 @@ import requests
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+from supabase import create_client, Client
+import openmeteo_requests
+import pandas as pd
+import requests_cache
+from retry_requests import retry
 
+# --- Carregar variáveis de ambiente (.env) ---
 load_dotenv()
 
 weather_bp = Blueprint('weather', __name__)
+
+# --- Configuração das APIs externas ---
 API_KEY = os.getenv('OPENWEATHER_API_KEY')
+
+# --- Configuração do Supabase ---
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 # ---------- Previsão do tempo via OpenWeather ----------
 @weather_bp.route('/weather')
 def get_weather():
     city = request.args.get('city', default='Recife', type=str)
+    user_id = request.args.get('user_id')  # opcional, vindo do frontend
+
     if not API_KEY:
         return jsonify({'error': 'Chave da API não configurada'}), 500
 
     url = f'https://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric&lang=pt_br'
     res = requests.get(url)
     if res.status_code != 200:
-        return jsonify({'error': 'Cidade não encontrada'}), 404
+        return jsonify({'error': 'Cidade não encontarada'}), 404
 
     data = res.json()
-    return jsonify({
+
+    resultado = {
         'cidade': data['name'],
         'temperatura': round(data['main']['temp']),
         'descricao': data['weather'][0]['description'].capitalize(),
-        'icone': data['weather'][0]['icon']
-    })
+        'icone': data['weather'][0]['icon'],
+        'timestamp': datetime.now().isoformat()
+    }
+
+    # --- [NOVO] Salvar consulta no Supabase ---
+    try:
+        print(f"[DEBUG] Inserindo dados para user_id={user_id}")
+
+        supabase.table("consultas_clima").insert({
+            "usuario_id": user_id,
+            "cidade": resultado['cidade'],
+            "temperatura": resultado['temperatura'],
+            "descricao": resultado['descricao'],
+            "data": datetime.now().isoformat()
+        }).execute()
+    except Exception as e:
+        print("Erro ao salvar no Supabase:", e)
+
+    return jsonify(resultado)
 
 
+# ---------- Previsão via coordenadas ----------
 @weather_bp.route('/weather/coords')
 def get_weather_by_coords():
     lat = request.args.get('lat')
     lon = request.args.get('lon')
+    user_id = request.args.get('user_id')
 
     if not lat or not lon:
         return jsonify({'error': 'Latitude e longitude obrigatórias'}), 400
@@ -46,13 +82,30 @@ def get_weather_by_coords():
         return jsonify({'error': 'Erro ao obter clima'}), 500
 
     data = res.json()
-    return jsonify({
+    resultado = {
         'cidade': data['name'],
         'temperatura': round(data['main']['temp']),
         'descricao': data['weather'][0]['description'].capitalize(),
-        'icone': data['weather'][0]['icon']
-    })
+        'icone': data['weather'][0]['icon'],
+        'timestamp': datetime.now().isoformat()
+    }
 
+    # --- [NOVO] Salvar consulta por coordenadas ---
+    try:
+        supabase.table("consultas_clima").insert({
+            "usuario_id": user_id,
+            "cidade": resultado['cidade'],
+            "temperatura": resultado['temperatura'],
+            "descricao": resultado['descricao'],
+            "data": datetime.now().isoformat()
+        }).execute()
+    except Exception as e:
+        print("Erro ao salvar no Supabase:", e)
+
+    return jsonify(resultado)
+
+
+# ---------- Alertas meteorológicos ----------
 @weather_bp.route('/alerts')
 def get_alerts():
     city = request.args.get('city')
@@ -74,7 +127,6 @@ def get_alerts():
     lat = geo_data[0]['lat']
     lon = geo_data[0]['lon']
 
-    # Consulta a alertas (OneCall da OpenWeather)
     onecall_url = (
         f'https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}'
         f'&exclude=current,minutely,hourly,daily&appid={API_KEY}&lang=pt_br'
@@ -86,7 +138,6 @@ def get_alerts():
     data = weather_res.json()
     alertas = data.get('alerts', [])
 
-    # Se não houver alertas, busca dados climáticos da Open-Meteo como fallback
     info = {}
     if not alertas:
         try:
@@ -121,20 +172,12 @@ def get_alerts():
     })
 
 
-
-# --- [AQUI COMEÇA A ROTA OPEN-METEO] ---
-# Esta rota consulta dados climáticos atuais usando a API Open-Meteo, baseada em latitude/longitude.
-# Se precisar alterar, buscar por: "get_open_meteo_weather"
-
-import openmeteo_requests
-import pandas as pd
-import requests_cache
-from retry_requests import retry
-
+# --- API alternativa: Open-Meteo (dados climáticos atuais) ---
 @weather_bp.route('/weather/open-meteo')
 def get_open_meteo_weather():
     lat = request.args.get('lat', type=float)
     lon = request.args.get('lon', type=float)
+    user_id = request.args.get('user_id')
 
     if lat is None or lon is None:
         return jsonify({'error': 'Latitude e longitude são obrigatórias'}), 400
@@ -156,15 +199,29 @@ def get_open_meteo_weather():
         response = responses[0]
         current = response.Current()
 
-        return jsonify({
+        resultado = {
             "latitude": response.Latitude(),
             "longitude": response.Longitude(),
             "temperatura": current.Variables(0).Value(),
             "umidade": current.Variables(1).Value(),
             "sensacao_termica": current.Variables(2).Value(),
             "vento": current.Variables(3).Value(),
-            "timestamp": current.Time()
-        })
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # --- [NOVO] Armazenar consulta no Supabase ---
+        try:
+            supabase.table("consultas_clima").insert({
+                "usuario_id": user_id,
+                "cidade": f"{resultado['latitude']}, {resultado['longitude']}",
+                "temperatura": resultado['temperatura'],
+                "descricao": f"Temp: {resultado['temperatura']}°C, Vento: {resultado['vento']} m/s",
+                "data": datetime.now().isoformat()
+            }).execute()
+        except Exception as e:
+            print("Erro ao salvar Open-Meteo no Supabase:", e)
+
+        return jsonify(resultado)
 
     except Exception as e:
         return jsonify({'error': f'Erro ao consultar Open-Meteo: {str(e)}'}), 500

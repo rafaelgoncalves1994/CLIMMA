@@ -11,7 +11,12 @@ function Clima() {
     if (!city) return
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:5000/weather?city=${city}`)
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.id || "";
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/weather?city=${city}&user_id=${userId}`
+      );
       const data = await res.json()
       if (res.ok) {
         setWeather(data)
